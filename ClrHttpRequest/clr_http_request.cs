@@ -5,6 +5,12 @@ using System.Net;
 using System.Text;
 using System.Xml.Linq;
 
+/// <summary>
+/// clr_http_request was originally written by Eilert Hjelmeseth
+/// and was published on 2018/10/11 here: http://www.sqlservercentral.com/articles/SQLCLR/177834/
+/// This version has minor improvements that allow it to support TLS1.2 security protocol
+/// and a couple of additional authorization methods.
+/// </summary>
 public partial class UserDefinedFunctions
 {
     [Microsoft.SqlServer.Server.SqlFunction]
