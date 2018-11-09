@@ -31,12 +31,6 @@ These changes allow the SQL Server function to work with advanced services such 
 For example:
 
 ```
--- Script Parameters:
-DECLARE @RequesterEmail NVARCHAR(4000) = N'some-end-user@some_customer_company.com'
-DECLARE @Subject NVARCHAR(MAX) = N'This is an automated alert'
-DECLARE @Body NVARCHAR(MAX) = N'This is the body of the message. It can be HTML formatted.'
-DECLARE @Priority NVARCHAR(4000) = N'normal' -- possible values: low, normal, high, critical
-
 -- Credentials info: Username (email address) must be followed by /token when using API key
 DECLARE @credentials NVARCHAR(4000) = 'agent@company_domain.com/token:api_token_key_here'
 DECLARE @headers NVARCHAR(4000) = '<Headers><Header Name="Content-Type">application/json</Header><Header Name="Authorization-Basic-Credentials">' + @credentials + '</Header></Headers>'
@@ -67,45 +61,8 @@ FROM OPENJSON(@tickets, '$.results')
 WHERE JSON_VALUE([value], '$.subject') = @Subject
 AND JSON_VALUE([value], '$.status') IN ('new', 'open', 'pending')
 
-
-if (ISNULL(@ticket,'') = '')
-BEGIN
-	-- ticket doesn't already exist. create new and get its info in return:
-	DECLARE @ticketbody NVARCHAR(MAX) = '{"ticket": {"subject": "' + @Subject + '", "comment": { "body": "' + @Body + '", "html_body": "' + @Body + '" }, "type" : "incident", "priority" : "' + @Priority + '", "requester": { "locale_id": 8, "email": "' + @RequesterEmail + '" }," }] }}'
-	
-  -- More magic here:
-	SET @ticket = [dbo].[clr_http_request]
-        (
-            'POST',
-            @zendesk_address + '/api/v2/tickets.json',
-            @ticketbody,
-            @headers,
-            300000,
-            0,
-            0
-        ).value('/Response[1]/Body[1]', 'NVARCHAR(MAX)')
-
-END
-else
-BEGIN
-	-- ticket already exists. add comment:
-	SET @uri = JSON_VALUE(@ticket, '$.url')
-
-	DECLARE @commentbody NVARCHAR(MAX) = '{"ticket": {"comment": { "body": "The alert has just been fired again on ' + CONVERT(nvarchar(25), GETDATE(), 121) + '. This is an automated message.", "author_id": "' + JSON_VALUE(@ticket, '$.submitter_id') + '" }}}'
-	DECLARE @comment NVARCHAR(MAX)
-	
-  -- More magic here:
-	SET @comment = [dbo].[clr_http_request]
-        (
-            'PUT',
-            @uri,
-            @commentbody,
-            @headers,
-            300000,
-            0,
-            0
-        ).value('/Response[1]/Body[1]', 'NVARCHAR(MAX)')
-END
+SELECT uri = JSON_VALUE(@ticket, '$.url'), submitter = JSON_VALUE(@ticket, '$.submitter_id')
 ```
+For more use cases vist here: https://github.com/EitanBlumin/ClrHttpRequest/blob/master/UseCases.md
 
 For more info on using the Zendesk API, visit here: https://developer.zendesk.com/rest_api/docs/core/introduction
