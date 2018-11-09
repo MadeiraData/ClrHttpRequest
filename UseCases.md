@@ -168,3 +168,114 @@ END
 else
 	RAISERROR(N'no message input received',16,1);
 ```
+
+## Stack Overflow API
+
+Here is an example to retrieve Stack Overflow questions from their API.
+
+```
+-- Query the Stack Overflow API and get a response
+DECLARE @response XML = 
+    [dbo].[clr_http_request]
+        (
+            'GET', 'http://api.stackexchange.com/2.2/questions?site=stackoverflow', 
+            NULL, NULL, 300000, 1, 0
+        );
+
+-- Extract just the body of the response (expecting JSON)
+DECLARE @response_json NVARCHAR(MAX) = @response.value('Response[1]/Body[1]', 'NVARCHAR(MAX)');
+
+-- Parse the JSON into a tabular format
+SELECT 
+    B.[question_id],
+    B.[title],
+    B.[tags],
+    B.[is_answered],
+    B.[view_count],
+    B.[answer_count],
+    B.[score]
+FROM OPENJSON(@response_json) WITH ([items] NVARCHAR(MAX) AS JSON) A
+CROSS APPLY OPENJSON(A.[items]) WITH 
+    (
+        [question_id] INT,
+        [title] NVARCHAR(MAX),
+        [tags] NVARCHAR(MAX) AS JSON,
+        [is_answered] BIT,
+        [view_count] INT,
+        [answer_count] INT,
+        [score] INT
+    ) B;
+```
+## Google AdWords' API
+
+This example will get an access token and use that to pull a performance report from Google AdWords.
+
+```
+-- Authentication variables
+DECLARE @refresh_token VARCHAR(500) = '...';
+DECLARE @client_id VARCHAR(500) = '...';
+DECLARE @client_secret VARCHAR(500) = '...';
+DECLARE @client_customer_id VARCHAR(500) = '...';
+DECLARE @developer_token VARCHAR(500) = '...';
+
+-- Use the AdWords Query Language to define a query for the Keywords Performance Report and specify desired format
+DECLARE @awql VARCHAR(MAX) = '
+    SELECT CampaignId, CampaignName, AdGroupId, AdGroupName, Id, Criteria, Device, Date, Impressions, Clicks, Cost, AveragePosition 
+    FROM KEYWORDS_PERFORMANCE_REPORT WHERE Impressions > 0 DURING 20180801,20180805
+';
+DECLARE @fmt VARCHAR(50) = 'XML';
+
+-- Get access token
+DECLARE @access_token VARCHAR(500) = JSON_VALUE(
+    [dbo].[clr_http_request]
+        (
+            'POST',
+            'https://www.googleapis.com/oauth2/v4/token',
+            CONCAT('grant_type=refresh_token&refresh_token=', @refresh_token, '&client_id=', @client_id, '&client_secret=', @client_secret),
+            NULL,
+            300000,
+            0,
+            0
+        ).value('/Response[1]/Body[1]', 'NVARCHAR(MAX)'),
+    '$.access_token'
+);
+
+-- Get report
+DECLARE @report_xml XML =
+    CAST(REPLACE(
+        [dbo].[clr_http_request]
+            (
+                'POST',
+                'https://adwords.google.com/api/adwords/reportdownload/v201802',
+                CONCAT('__fmt=', @fmt, '&__rdquery=', @awql),
+                CONCAT('
+                    <Headers>
+                        <Header Name="Authorization">Bearer ', @access_token, '</Header>
+                        <Header Name="developerToken">', @developer_token, '</Header>
+                        <Header Name="clientCustomerId">', @client_customer_id, '</Header>
+                    </Headers>
+                '),
+                300000,
+                1,
+                0
+            ).value('/Response[1]/Body[1]', 'NVARCHAR(MAX)'),
+        '<?xml version=''1.0'' encoding=''UTF-8'' standalone=''yes''?>',
+        ''
+    ) AS XML);
+
+-- Parse report XML
+SELECT 
+    A.[row].value('@campaignID', 'BIGINT') [campaign_id],
+    A.[row].value('@campaign', 'VARCHAR(500)') [campaign_name],
+    A.[row].value('@adGroupID', 'BIGINT') [ad_group_id],
+    A.[row].value('@adGroup', 'VARCHAR(500)') [ad_group_name],
+    A.[row].value('@keywordID', 'BIGINT') [keyword_id],
+    A.[row].value('@keyword', 'VARCHAR(500)') [keyword],
+    A.[row].value('@device', 'VARCHAR(50)') [device],
+    A.[row].value('@day', 'DATE') [date],
+    A.[row].value('@impressions', 'INT') [impressions],
+    A.[row].value('@clicks', 'INT') [clicks],
+    A.[row].value('@cost', 'BIGINT') [cost],
+    A.[row].value('@avgPosition', 'FLOAT') [average_position]
+FROM @report_xml.nodes('/report/table/row') A ([row]);
+```
