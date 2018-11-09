@@ -3,7 +3,7 @@
 See below several different use cases for the clr_http_request function:
 
 
-## Zendesk
+## Zendesk API
 
 The example script below uses clr_http_request to look for a ticket of a given requester with a given subject.
 If such a ticket doesn't exist, create a new one. Otherwise, post a comment to the existing ticket.
@@ -86,7 +86,7 @@ BEGIN
 END
 ```
 
-## Slack
+## Slack Workspace App API
 
 The following example demonstrate how to use clr_http_request with a Slack Workspace bot:
 
@@ -279,3 +279,6 @@ SELECT
     A.[row].value('@avgPosition', 'FLOAT') [average_position]
 FROM @report_xml.nodes('/report/table/row') A ([row]);
 ```
+
+For more info:
+http://www.sqlservercentral.com/articles/SQLCLR/177834/
