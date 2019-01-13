@@ -63,6 +63,6 @@ AND JSON_VALUE([value], '$.status') IN ('new', 'open', 'pending')
 
 SELECT uri = JSON_VALUE(@ticket, '$.url'), submitter = JSON_VALUE(@ticket, '$.submitter_id')
 ```
-For more use cases vist here: https://github.com/EitanBlumin/ClrHttpRequest/blob/master/UseCases.md
+For more use cases visit here: https://github.com/EitanBlumin/ClrHttpRequest/blob/master/UseCases.md
 
 For more info on using the Zendesk API, visit here: https://developer.zendesk.com/rest_api/docs/core/introduction
