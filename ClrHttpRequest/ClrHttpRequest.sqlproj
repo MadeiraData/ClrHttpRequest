@@ -26,8 +26,11 @@
     <PermissionSet>UNSAFE</PermissionSet>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>ClrHttpRequest.snk</AssemblyOriginatorKeyFile>
-    <Trustworthy>True</Trustworthy>
+    <Trustworthy>False</Trustworthy>
     <AssemblyOwner>dbo</AssemblyOwner>
+    <GenerateCreateScript>True</GenerateCreateScript>
+    <EnableFullTextSearch>False</EnableFullTextSearch>
+    <Recovery>SIMPLE</Recovery>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <OutputPath>bin\Release\</OutputPath>
@@ -75,5 +78,14 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ClrHttpRequest.snk" />
+  </ItemGroup>
+  <ItemGroup>
+    <SqlCmdVariable Include="PathToSignedDLL">
+      <DefaultValue>C:\ClrHttpRequest\ClrHttpRequest.dll</DefaultValue>
+      <Value>$(SqlCmdVar__1)</Value>
+    </SqlCmdVariable>
+  </ItemGroup>
+  <ItemGroup>
+    <PreDeploy Include="Script.PreDeployment.sql" />
   </ItemGroup>
 </Project>
