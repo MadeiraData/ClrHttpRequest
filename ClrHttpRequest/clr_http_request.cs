@@ -1,3 +1,4 @@
+using Microsoft.SqlServer.Server;
 using System;
 using System.Data.SqlTypes;
 using System.IO;
@@ -14,26 +15,35 @@ using System.Xml.Linq;
 public partial class UserDefinedFunctions
 {
     [Microsoft.SqlServer.Server.SqlFunction]
-    public static SqlXml clr_http_request(string requestMethod, string url, string parameters, string headers, int timeout, bool autoDecompress, bool convertResponseToBas64) //, bool debug
+    public static SqlXml clr_http_request(
+        [SqlFacet(MaxSize = 10)]SqlString requestMethod, 
+        [SqlFacet(MaxSize = -1)]SqlString url, 
+        [SqlFacet(MaxSize = -1)]SqlString parameters, 
+        [SqlFacet(MaxSize = -1)]SqlString headers, 
+        SqlInt32 timeout, 
+        SqlBoolean autoDecompress, 
+        SqlBoolean convertResponseToBas64
+        //, bool debug
+        )
     {
         // If GET request, and there are parameters, build into url
-        if (requestMethod.ToUpper() == "GET" && !string.IsNullOrWhiteSpace(parameters))
+        if (requestMethod.Value.ToUpper() == "GET" && !string.IsNullOrWhiteSpace(parameters.Value))
         {
-            url += (url.IndexOf('?') > 0 ? "&" : "?") + parameters;
+            url += (url.Value.IndexOf('?') > 0 ? "&" : "?") + parameters;
         }
 
         ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
         // Create an HttpWebRequest with the url
-        var request = (HttpWebRequest)HttpWebRequest.Create(url);
+        var request = (HttpWebRequest)HttpWebRequest.Create(url.Value);
 
         // Add in any headers provided
         bool contentLengthSetFromHeaders = false;
         bool contentTypeSetFromHeaders = false;
-        if (!string.IsNullOrWhiteSpace(headers))
+        if (!string.IsNullOrWhiteSpace(headers.Value))
         {
             // Parse provided headers as XML and loop through header elements
-            var xmlData = XElement.Parse(headers);
+            var xmlData = XElement.Parse(headers.Value);
             foreach (XElement headerElement in xmlData.Descendants())
             {
                 // Retrieve header's name and value
@@ -96,18 +106,18 @@ public partial class UserDefinedFunctions
         }
 
         // Set the method, timeout, and decompression
-        request.Method = requestMethod.ToUpper();
-        request.Timeout = timeout;
+        request.Method = requestMethod.Value.ToUpper();
+        request.Timeout = timeout.Value;
         if (autoDecompress)
         {
             request.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
         }
 
         // Add in non-GET parameters provided
-        if (requestMethod.ToUpper() != "GET" && !string.IsNullOrWhiteSpace(parameters))
+        if (requestMethod.Value.ToUpper() != "GET" && !string.IsNullOrWhiteSpace(parameters.Value))
         {
             // Convert to byte array
-            var parameterData = Encoding.ASCII.GetBytes(parameters);
+            var parameterData = Encoding.ASCII.GetBytes(parameters.Value);
 
             // Set content info
             if (!contentLengthSetFromHeaders)
