@@ -7,6 +7,8 @@ IMPORTANT NOTE: The Headers are case-sensitive! I've created an issue to fix thi
 This project is a fork of the project initially published By Eilert Hjelmeseth, 2018/10/11 here:
 http://www.sqlservercentral.com/articles/SQLCLR/177834/
 
+Eilhert's GitHub project: https://github.com/eilerth/sqlclr-http-request
+
 My version extends the project by adding the following:
 
 * Usage of TLS1.2 security protocol (nowadays a global standard).
