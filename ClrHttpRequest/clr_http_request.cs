@@ -17,18 +17,31 @@ public partial class UserDefinedFunctions
 {
     [Microsoft.SqlServer.Server.SqlFunction]
     public static SqlXml clr_http_request(
-        [SqlFacet(MaxSize = 10)]SqlString requestMethod, 
-        [SqlFacet(MaxSize = -1)]SqlString url, 
-        [SqlFacet(MaxSize = -1)]SqlString parameters, 
-        [SqlFacet(MaxSize = -1)]SqlString headers, 
-        SqlInt32 timeout, 
-        SqlBoolean autoDecompress, 
+        [SqlFacet(MaxSize = 10)] SqlString requestMethod,
+        [SqlFacet(MaxSize = -1, IsNullable = false)] SqlString url,
+        [SqlFacet(MaxSize = -1, IsNullable = true)] SqlString parameters,
+        [SqlFacet(MaxSize = -1, IsNullable = true)] SqlString headers,
+        SqlInt32 timeout,
+        SqlBoolean autoDecompress,
         SqlBoolean convertResponseToBas64
         //, bool debug
         )
     {
+        // Default values
+        if (requestMethod.IsNull)
+            requestMethod = "GET";
+
+        if (timeout.IsNull)
+            timeout = 30000;
+
+        if (autoDecompress.IsNull)
+            autoDecompress = false;
+
+        if (convertResponseToBas64.IsNull)
+            convertResponseToBas64 = false;
+
         // If GET request, and there are parameters, build into url
-        if (requestMethod.Value.ToUpper() == "GET" && !string.IsNullOrWhiteSpace(parameters.Value))
+        if (requestMethod.Value.ToUpper() == "GET" && !parameters.IsNull && !string.IsNullOrWhiteSpace(parameters.Value))
         {
             url += (url.Value.IndexOf('?') > 0 ? "&" : "?") + parameters;
         }
@@ -41,7 +54,7 @@ public partial class UserDefinedFunctions
         // Add in any headers provided
         bool contentLengthSetFromHeaders = false;
         bool contentTypeSetFromHeaders = false;
-        if (!string.IsNullOrWhiteSpace(headers.Value))
+        if (!headers.IsNull && !string.IsNullOrWhiteSpace(headers.Value))
         {
             // Parse provided headers as XML and loop through header elements
             var xmlData = XElement.Parse(headers.Value);
@@ -52,7 +65,7 @@ public partial class UserDefinedFunctions
                 var headerValue = headerElement.Value;
 
                 // Some headers cannot be set by request.Headers.Add() and need to set the HttpWebRequest property directly
-                switch (headerName.ToUpper()) 
+                switch (headerName.ToUpper())
                 {
                     case "ACCEPT":
                         request.Accept = headerValue;
@@ -107,15 +120,15 @@ public partial class UserDefinedFunctions
         }
 
         // Set the method, timeout, and decompression
-        request.Method = requestMethod.Value.ToUpper();
-        request.Timeout = timeout.Value;
+        request.Method = (requestMethod.IsNull) ? "GET" : requestMethod.Value.ToUpper();
+        request.Timeout = (timeout.IsNull) ? 30000 : timeout.Value;
         if (autoDecompress)
         {
             request.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
         }
 
         // Add in non-GET parameters provided
-        if (requestMethod.Value.ToUpper() != "GET" && !string.IsNullOrWhiteSpace(parameters.Value))
+        if (requestMethod.Value.ToUpper() != "GET" && !parameters.IsNull && !string.IsNullOrWhiteSpace(parameters.Value))
         {
             // Convert to byte array
             var parameterData = Encoding.UTF8.GetBytes(parameters.Value);
