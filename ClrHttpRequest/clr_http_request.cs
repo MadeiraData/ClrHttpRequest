@@ -11,6 +11,7 @@ using System.Xml.Linq;
 /// and was published on 2018/10/11 here: http://www.sqlservercentral.com/articles/SQLCLR/177834/
 /// This version has minor improvements that allow it to support TLS1.2 security protocol
 /// and a couple of additional authorization methods.
+/// Update 2020-08-17: Added UTF8 support, and case-insensitive headers.
 /// </summary>
 public partial class UserDefinedFunctions
 {
@@ -51,51 +52,51 @@ public partial class UserDefinedFunctions
                 var headerValue = headerElement.Value;
 
                 // Some headers cannot be set by request.Headers.Add() and need to set the HttpWebRequest property directly
-                switch (headerName) 
+                switch (headerName.ToUpper()) 
                 {
-                    case "Accept":
+                    case "ACCEPT":
                         request.Accept = headerValue;
                         break;
-                    case "Connection":
+                    case "CONNECTION":
                         request.Connection = headerValue;
                         break;
-                    case "Content-Length":
+                    case "CONTENT-LENGTH":
                         request.ContentLength = long.Parse(headerValue);
                         contentLengthSetFromHeaders = true;
                         break;
-                    case "Content-Type":
+                    case "CONTENT-TYPE":
                         request.ContentType = headerValue;
                         contentTypeSetFromHeaders = true;
                         break;
-                    case "Date":
+                    case "DATE":
                         request.Date = DateTime.Parse(headerValue);
                         break;
-                    case "Expect":
+                    case "EXPECT":
                         request.Expect = headerValue;
                         break;
-                    case "Host":
+                    case "HOST":
                         request.Host = headerValue;
                         break;
-                    case "If-Modified-Since":
+                    case "IF-MODIFIED-SINCE":
                         request.IfModifiedSince = DateTime.Parse(headerValue);
                         break;
-                    case "Range":
+                    case "RANGE":
                         var parts = headerValue.Split('-');
                         request.AddRange(int.Parse(parts[0]), int.Parse(parts[1]));
                         break;
-                    case "Referer":
+                    case "REFERER":
                         request.Referer = headerValue;
                         break;
-                    case "Transfer-Encoding":
+                    case "TRANSFER-ENCODING":
                         request.TransferEncoding = headerValue;
                         break;
-                    case "User-Agent":
+                    case "USER-AGENT":
                         request.UserAgent = headerValue;
                         break;
-                    case "Authorization-Basic-Credentials":
+                    case "AUTHORIZATION-BASIC-CREDENTIALS":
                         request.Headers.Add("Authorization", "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(headerValue)));
                         break;
-                    case "Authorization-Network-Credentials":
+                    case "AUTHORIZATION-NETWORK-CREDENTIALS":
                         request.Credentials = new NetworkCredential(headerValue.Split(':')[0], headerValue.Split(':')[1]);
                         break;
                     default: // other headers
