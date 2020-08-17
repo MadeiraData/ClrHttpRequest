@@ -2,8 +2,6 @@
 
 SQL Server CLR function for running REST methods over HTTP.
 
-IMPORTANT NOTE: The Headers are case-sensitive! I've created an issue to fix this, though: https://github.com/EitanBlumin/ClrHttpRequest/issues/2
-
 This project is a fork of the project initially published By Eilert Hjelmeseth, 2018/10/11 here:
 http://www.sqlservercentral.com/articles/SQLCLR/177834/
 
