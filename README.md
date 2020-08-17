@@ -2,8 +2,6 @@
 
 SQL Server CLR function for running REST methods over HTTP.
 
-IMPORTANT NOTE: The Headers are case-sensitive! I've created an issue to fix this, though: https://github.com/EitanBlumin/ClrHttpRequest/issues/2
-
 This project is a fork of the project initially published By Eilert Hjelmeseth, 2018/10/11 here:
 http://www.sqlservercentral.com/articles/SQLCLR/177834/
 
@@ -15,6 +13,8 @@ My version extends the project by adding the following:
 * Two new authentication methods:
   * Authorization-Basic-Credentials (Basic authorization using Base64 credentials)
   * Authorization-Network-Credentials (creates a new `NetworkCredential` object and assigns it to the `Credentials` property of the request)
+* Added UTF8 encoding support instead of ASCII.
+* Added support for case-insensitive headers.
   
 The following code was added in clr_http_request.cs, line 19:
 ```
