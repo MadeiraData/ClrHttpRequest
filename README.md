@@ -15,6 +15,8 @@ My version extends the project by adding the following:
 * Two new authentication methods:
   * Authorization-Basic-Credentials (Basic authorization using Base64 credentials)
   * Authorization-Network-Credentials (creates a new `NetworkCredential` object and assigns it to the `Credentials` property of the request)
+* Added UTF8 encoding support instead of ASCII.
+* Added support for case-insensitive headers.
   
 The following code was added in clr_http_request.cs, line 19:
 ```
