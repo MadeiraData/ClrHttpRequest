@@ -16,18 +16,57 @@ GO
 IF (SELECT value_in_use FROM sys.configurations WHERE name = 'clr enabled') = 0
 BEGIN
     PRINT N'Enabling CLR...'
+	DECLARE @InitAdvanced INT;
+	SELECT @InitAdvanced = CONVERT(int, value) FROM sys.configurations WHERE name = 'show advanced options';
+
+	IF @InitAdvanced = 0
+	BEGIN
+		EXEC sp_configure 'show advanced options', 1;
+		RECONFIGURE;
+	END
+
     EXEC sp_configure 'clr enabled', 1;
     RECONFIGURE;
+
+	IF @InitAdvanced = 0
+	BEGIN
+		EXEC sp_configure 'show advanced options', 0;
+		RECONFIGURE;
+	END
 END
 GO
-IF NOT EXISTS (select * from sys.asymmetric_keys WHERE name = 'clr_http_request_pkey')
-	create asymmetric key clr_http_request_pkey
-	from executable file = '$(PathToSignedDLL)'
+IF NOT EXISTS (select * from sys.asymmetric_keys WHERE name = '$(CLRKeyName)')
+BEGIN
+	BEGIN TRY
+		PRINT N'Creating encryption key from: $(PathToSignedDLL)'
+		create asymmetric key [$(CLRKeyName)]
+		from executable file = '$(PathToSignedDLL)'
+	END TRY
+	BEGIN CATCH
+		IF ERROR_NUMBER() = 15396
+		BEGIN
+			RAISERROR(N'An encryption key with the same thumbprint was already created in this database with a different name.',0,1);
+			IF EXISTS(
+				SELECT *
+				FROM sys.asymmetric_keys AS ak
+				LEFT JOIN sys.syslogins AS l ON l.sid = ak.sid
+				WHERE l.sid IS NULL
+			)
+			BEGIN
+				RAISERROR(N'Please make sure that there is also a login for the existing encryption key.',0,1);
+			END
+		END
+	END CATCH
+END
 GO
-IF NOT EXISTS (select name from sys.syslogins where name = 'clr_http_request_login')
-	create login clr_http_request_login from asymmetric key clr_http_request_pkey;
+IF NOT EXISTS (select name from sys.syslogins where name = '$(CLRLoginName)')
+AND EXISTS (select * from sys.asymmetric_keys WHERE name = '$(CLRKeyName)')
+BEGIN
+	PRINT N'Creating login from encryption key...'
+	create login [$(CLRLoginName)] from asymmetric key [$(CLRKeyName)];
+END
 GO
-grant unsafe assembly to clr_http_request_login;
+grant unsafe assembly to [$(CLRLoginName)];
 GO
 -- Return execution context to intended target database
 USE [$(DatabaseName)];

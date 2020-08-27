@@ -8,7 +8,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectVersion>4.1</ProjectVersion>
     <ProjectGuid>{e27a194a-54d7-4fd8-9c33-e587d148b529}</ProjectGuid>
-    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql130DatabaseSchemaProvider</DSP>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql120DatabaseSchemaProvider</DSP>
     <OutputType>Database</OutputType>
     <RootPath>
     </RootPath>
@@ -31,6 +31,8 @@
     <GenerateCreateScript>True</GenerateCreateScript>
     <EnableFullTextSearch>False</EnableFullTextSearch>
     <Recovery>SIMPLE</Recovery>
+    <DacVersion>3.0.0.0</DacVersion>
+    <PageVerify>CHECKSUM</PageVerify>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <OutputPath>bin\Release\</OutputPath>
@@ -80,6 +82,14 @@
     <None Include="ClrHttpRequest.snk" />
   </ItemGroup>
   <ItemGroup>
+    <SqlCmdVariable Include="CLRKeyName">
+      <DefaultValue>clr_http_request_pkey</DefaultValue>
+      <Value>$(SqlCmdVar__2)</Value>
+    </SqlCmdVariable>
+    <SqlCmdVariable Include="CLRLoginName">
+      <DefaultValue>clr_http_request_login</DefaultValue>
+      <Value>$(SqlCmdVar__3)</Value>
+    </SqlCmdVariable>
     <SqlCmdVariable Include="PathToSignedDLL">
       <DefaultValue>C:\ClrHttpRequest\ClrHttpRequest.dll</DefaultValue>
       <Value>$(SqlCmdVar__1)</Value>
