@@ -1,5 +1,6 @@
 using Microsoft.SqlServer.Server;
 using System;
+using System.ComponentModel;
 using System.Data.SqlTypes;
 using System.IO;
 using System.Net;
@@ -95,6 +96,10 @@ public partial class UserDefinedFunctions
                         break;
                     case "RANGE":
                         var parts = headerValue.Split('-');
+                        if (parts.Length < 2)
+                        {
+                            throw new FormatException("Range must be specified in a format of start-end");
+                        }
                         request.AddRange(int.Parse(parts[0]), int.Parse(parts[1]));
                         break;
                     case "REFERER":
@@ -110,6 +115,11 @@ public partial class UserDefinedFunctions
                         request.Headers.Add("Authorization", "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(headerValue)));
                         break;
                     case "AUTHORIZATION-NETWORK-CREDENTIALS":
+                        var values = headerValue.Split(':');
+                        if (values.Length < 2)
+                        {
+                            throw new FormatException("When specifying Authorization-Network-Credentials headers, please set the value in a format of username:password");
+                        }
                         request.Credentials = new NetworkCredential(headerValue.Split(':')[0], headerValue.Split(':')[1]);
                         break;
                     default: // other headers
@@ -122,7 +132,7 @@ public partial class UserDefinedFunctions
         // Set the method, timeout, and decompression
         request.Method = (requestMethod.IsNull) ? "GET" : requestMethod.Value.ToUpper();
         request.Timeout = (timeout.IsNull) ? 30000 : timeout.Value;
-        if (autoDecompress)
+        if (!autoDecompress.IsNull && autoDecompress.Value)
         {
             request.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
         }
