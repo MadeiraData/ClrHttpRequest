@@ -2,6 +2,8 @@
 
 SQL Server CLR function for running REST methods over HTTP.
 
+To download the latest version, please [visit the Releases page](https://github.com/MadeiraData/ClrHttpRequest/releases).
+
 This project is a fork of the project initially published By Eilert Hjelmeseth, 2018/10/11 here:
 http://www.sqlservercentral.com/articles/SQLCLR/177834/
 
