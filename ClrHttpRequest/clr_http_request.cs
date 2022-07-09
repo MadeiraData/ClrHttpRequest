@@ -42,20 +42,20 @@ public partial class UserDefinedFunctions
             convertResponseToBas64 = false;
 
         // If GET request, and there are parameters, build into url
-        if (requestMethod.Value.ToUpper() == "GET" && !parameters.IsNull && !string.IsNullOrWhiteSpace(parameters.Value))
+        if (requestMethod.Value.ToUpper() == "GET" && !parameters.IsNull && !String.IsNullOrEmpty(parameters.Value))
         {
             url += (url.Value.IndexOf('?') > 0 ? "&" : "?") + parameters;
         }
 
-        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls;
 
         // Create an HttpWebRequest with the url
-        var request = (HttpWebRequest)HttpWebRequest.Create(url.Value);
+        var request = (WebRequest)WebRequest.Create(url.Value);
 
         // Add in any headers provided
         bool contentLengthSetFromHeaders = false;
         bool contentTypeSetFromHeaders = false;
-        if (!headers.IsNull && !string.IsNullOrWhiteSpace(headers.Value))
+        if (!headers.IsNull && !String.IsNullOrEmpty(headers.Value))
         {
             // Parse provided headers as XML and loop through header elements
             var xmlData = XElement.Parse(headers.Value);
@@ -68,12 +68,12 @@ public partial class UserDefinedFunctions
                 // Some headers cannot be set by request.Headers.Add() and need to set the HttpWebRequest property directly
                 switch (headerName.ToUpper())
                 {
-                    case "ACCEPT":
-                        request.Accept = headerValue;
-                        break;
-                    case "CONNECTION":
-                        request.Connection = headerValue;
-                        break;
+                    //case "ACCEPT":
+                    //    request.Accept = headerValue;
+                    //    break;
+                    //case "CONNECTION":
+                    //    request.Connection = headerValue;
+                    //    break;
                     case "CONTENT-LENGTH":
                         request.ContentLength = long.Parse(headerValue);
                         contentLengthSetFromHeaders = true;
@@ -82,35 +82,35 @@ public partial class UserDefinedFunctions
                         request.ContentType = headerValue;
                         contentTypeSetFromHeaders = true;
                         break;
-                    case "DATE":
-                        request.Date = DateTime.Parse(headerValue);
-                        break;
-                    case "EXPECT":
-                        request.Expect = headerValue;
-                        break;
-                    case "HOST":
-                        request.Host = headerValue;
-                        break;
-                    case "IF-MODIFIED-SINCE":
-                        request.IfModifiedSince = DateTime.Parse(headerValue);
-                        break;
-                    case "RANGE":
-                        var parts = headerValue.Split('-');
-                        if (parts.Length < 2)
-                        {
-                            throw new FormatException("Range must be specified in a format of start-end");
-                        }
-                        request.AddRange(int.Parse(parts[0]), int.Parse(parts[1]));
-                        break;
-                    case "REFERER":
-                        request.Referer = headerValue;
-                        break;
-                    case "TRANSFER-ENCODING":
-                        request.TransferEncoding = headerValue;
-                        break;
-                    case "USER-AGENT":
-                        request.UserAgent = headerValue;
-                        break;
+                    //case "DATE":
+                    //    request.Date = DateTime.Parse(headerValue);
+                    //    break;
+                    //case "EXPECT":
+                    //    request.Expect = headerValue;
+                    //    break;
+                    //case "HOST":
+                    //    request.Host = headerValue;
+                    //    break;
+                    //case "IF-MODIFIED-SINCE":
+                    //    request.IfModifiedSince = DateTime.Parse(headerValue);
+                    //    break;
+                    //case "RANGE":
+                    //    var parts = headerValue.Split('-');
+                    //    if (parts.Length < 2)
+                    //    {
+                    //        throw new FormatException("Range must be specified in a format of start-end");
+                    //    }
+                    //    request.AddRange(int.Parse(parts[0]), int.Parse(parts[1]));
+                    //    break;
+                    //case "REFERER":
+                    //    request.Referer = headerValue;
+                    //    break;
+                    //case "TRANSFER-ENCODING":
+                    //    request.TransferEncoding = headerValue;
+                    //    break;
+                    //case "USER-AGENT":
+                    //    request.UserAgent = headerValue;
+                    //    break;
                     case "AUTHORIZATION-BASIC-CREDENTIALS":
                         request.Headers.Add("Authorization", "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(headerValue)));
                         break;
@@ -138,7 +138,7 @@ public partial class UserDefinedFunctions
         }
 
         // Add in non-GET parameters provided
-        if (requestMethod.Value.ToUpper() != "GET" && !parameters.IsNull && !string.IsNullOrWhiteSpace(parameters.Value))
+        if (requestMethod.Value.ToUpper() != "GET" && !parameters.IsNull && !String.IsNullOrEmpty(parameters.Value))
         {
             // Convert to byte array
             var parameterData = Encoding.UTF8.GetBytes(parameters.Value);
@@ -157,12 +157,13 @@ public partial class UserDefinedFunctions
             using (var stream = request.GetRequestStream())
             {
                 stream.Write(parameterData, 0, parameterData.Length);
+                stream.Close();
             }
         }
 
         // Retrieve results from response
         XElement returnXml;
-        using (var response = (HttpWebResponse)request.GetResponse())
+        using (var response = (WebResponse)request.GetResponse())
         {
             // Get headers (loop through response's headers)
             var headersXml = new XElement("Headers");
@@ -195,7 +196,7 @@ public partial class UserDefinedFunctions
                     using (var memoryStream = new MemoryStream())
                     {
                         // Copy response stream to memory stream
-                        stream.CopyTo(memoryStream);
+                        stream.CopyTo(memoryStream as Stream);
 
                         // Convert memory stream to a byte array
                         var bytes = memoryStream.ToArray();
@@ -217,26 +218,28 @@ public partial class UserDefinedFunctions
             // Assemble reponse XML from details of HttpWebResponse
             returnXml =
                 new XElement("Response",
-                    new XElement("CharacterSet", response.CharacterSet),
-                    new XElement("ContentEncoding", response.ContentEncoding),
+                    //new XElement("CharacterSet", response.CharacterSet),
+                    //new XElement("ContentEncoding", response.ContentEncoding),
                     new XElement("ContentLength", response.ContentLength),
                     new XElement("ContentType", response.ContentType),
-                    new XElement("CookiesCount", response.Cookies.Count),
+                    //new XElement("CookiesCount", response.Cookies.Count),
                     new XElement("HeadersCount", response.Headers.Count),
                     headersXml,
                     new XElement("IsFromCache", response.IsFromCache),
                     new XElement("IsMutuallyAuthenticated", response.IsMutuallyAuthenticated),
-                    new XElement("LastModified", response.LastModified),
-                    new XElement("Method", response.Method),
-                    new XElement("ProtocolVersion", response.ProtocolVersion),
+                    //new XElement("LastModified", response.LastModified),
+                    //new XElement("Method", response.Method),
+                    //new XElement("ProtocolVersion", response.ProtocolVersion),
                     new XElement("ResponseUri", response.ResponseUri),
-                    new XElement("Server", response.Server),
-                    new XElement("StatusCode", response.StatusCode),
-                    new XElement("StatusNumber", ((int)response.StatusCode)),
-                    new XElement("StatusDescription", response.StatusDescription),
-                    new XElement("SupportsHeaders", response.SupportsHeaders),
+                    //new XElement("Server", response.Server),
+                    //new XElement("StatusCode", response.StatusCode),
+                    //new XElement("StatusNumber", ((int)response.StatusCode)),
+                    //new XElement("StatusDescription", response.StatusDescription),
+                    //new XElement("SupportsHeaders", response.SupportsHeaders),
                     new XElement("Body", responseString)
                 );
+            
+            response.Close();
         }
 
         // Return data
