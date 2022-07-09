@@ -1,6 +1,5 @@
 using Microsoft.SqlServer.Server;
 using System;
-using System.ComponentModel;
 using System.Data.SqlTypes;
 using System.IO;
 using System.Net;
@@ -12,6 +11,7 @@ using System.Xml.Linq;
 /// and was published on 2018/10/11 here: http://www.sqlservercentral.com/articles/SQLCLR/177834/
 /// This version has minor improvements that allow it to support TLS1.2 security protocol
 /// and a couple of additional authorization methods.
+/// Update 2022-07-09: Added support for new Proxy header.
 /// Update 2020-08-17: Added UTF8 support, and case-insensitive headers.
 /// </summary>
 public partial class UserDefinedFunctions
@@ -115,12 +115,27 @@ public partial class UserDefinedFunctions
                         request.Headers.Add("Authorization", "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(headerValue)));
                         break;
                     case "AUTHORIZATION-NETWORK-CREDENTIALS":
-                        var values = headerValue.Split(':');
-                        if (values.Length < 2)
+                        var netCredValues = headerValue.Split(':');
+                        if (netCredValues.Length < 2)
                         {
                             throw new FormatException("When specifying Authorization-Network-Credentials headers, please set the value in a format of username:password");
                         }
-                        request.Credentials = new NetworkCredential(headerValue.Split(':')[0], headerValue.Split(':')[1]);
+                        request.Credentials = new NetworkCredential(netCredValues[0], netCredValues[1]);
+                        break;
+                    case "PROXY":
+                        var proxyValues = headerValue.Split(':');
+                        if (proxyValues.Length < 2)
+                        {
+                            throw new FormatException("When specifying the PROXY header, please set the value in a format of URI:PORT");
+                        }
+                        int proxyPort;
+                        if (!int.TryParse(proxyValues[1], out proxyPort))
+                        {
+                            throw new FormatException("When specifying the PROXY header in the format of URI:PORT, the PORT must be numeric");
+                        }
+                        WebProxy myproxy = new WebProxy(proxyValues[0], proxyPort);
+                        myproxy.BypassProxyOnLocal = false;
+                        request.Proxy = myproxy;
                         break;
                     default: // other headers
                         request.Headers.Add(headerName, headerValue);
