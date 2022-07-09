@@ -15,12 +15,13 @@ My version extends the project by adding the following:
 * Two new authentication methods:
   * Authorization-Basic-Credentials (Basic authorization using Base64 credentials)
   * Authorization-Network-Credentials (creates a new `NetworkCredential` object and assigns it to the `Credentials` property of the request)
+* Added support for using a `Proxy` with a new "Proxy" header in the form of `URI:PORT`. For example: `<Header Name="Proxy">https://acmeproxy:4321</Header>`
 * Addition of a proper PreDeployment script which takes care of CLR assembly signing without requiring the TRUSTWORTHY database setting.
 * Added UTF8 encoding support instead of ASCII.
 * Added support for case-insensitive headers.
   
 The following code was added in clr_http_request.cs, line 19:
-```
+```cs
 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 ```
 
@@ -57,7 +58,7 @@ The following code was added in line 79 to add support for special headers:
 These changes allow the SQL Server function to work with advanced services such as Zendesk.
 For example:
 
-```
+```sql
 -- Credentials info: Username (email address) must be followed by /token when using API key
 DECLARE @credentials NVARCHAR(4000) = 'agent@company_domain.com/token:api_token_key_here'
 DECLARE @headers NVARCHAR(4000) = '<Headers><Header Name="Content-Type">application/json</Header><Header Name="Authorization-Basic-Credentials">' + @credentials + '</Header></Headers>'
