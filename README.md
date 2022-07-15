@@ -15,7 +15,7 @@ My version extends the project by adding the following:
 * Two new authentication methods:
   * Authorization-Basic-Credentials (Basic authorization using Base64 credentials)
   * Authorization-Network-Credentials (creates a new `NetworkCredential` object and assigns it to the `Credentials` property of the request)
-* Added support for using a `Proxy` with a new "Proxy" header in the form of `URI:PORT`. For example: `<Header Name="Proxy">https://acmeproxy:4321</Header>`
+* Added support for using a `Proxy` with a new "Proxy" header in the form of `URI,PORT[,username:password]` (credentials are optional). For example: `<Header Name="Proxy">https://acmeproxy,4321</Header>`
 * Addition of a proper PreDeployment script which takes care of CLR assembly signing without requiring the TRUSTWORTHY database setting.
 * Added UTF8 encoding support instead of ASCII.
 * Added support for case-insensitive headers.
@@ -39,18 +39,40 @@ The following code was added in line 79 to add support for special headers:
 		request.Credentials = new NetworkCredential(netCredValues[0], netCredValues[1]);
 		break;
 	case "Proxy":
-		var proxyValues = headerValue.Split(':');
+		var proxyValues = headerValue.Split(',');
 		if (proxyValues.Length < 2)
 		{
-			throw new FormatException("When specifying the PROXY header, please set the value in a format of URI:PORT");
+			throw new FormatException("When specifying the PROXY header, please set the value in a format of URI,PORT (you can also specify credentials using the format URI,PORT,username:password)");
 		}
 		int proxyPort;
 		if (!int.TryParse(proxyValues[1], out proxyPort))
 		{
-			throw new FormatException("When specifying the PROXY header in the format of URI:PORT, the PORT must be numeric");
+			throw new FormatException("When specifying the PROXY header in the format of URI,PORT the PORT must be numeric");
 		}
 		WebProxy myproxy = new WebProxy(proxyValues[0], proxyPort);
 		myproxy.BypassProxyOnLocal = false;
+
+		if (proxyValues.Length > 2)
+		{
+			var proxyCred = proxyValues[2].Split(':');
+			if (proxyCred.Length < 2)
+			{
+				throw new FormatException("When specifying the PROXY header, please set the value in a format of URI,PORT (you can also specify credentials using the format URI,PORT,username:password)");
+			}
+			else
+			{
+				var proxyCredPassword = proxyCred[1];
+
+				// if the password contains colon characters, re-stich them back into the password
+				for (int i = 2; i < proxyCred.Length - 1; i++)
+				{
+					proxyCredPassword += ":" + proxyCred[i];
+				}
+
+				myproxy.Credentials = new NetworkCredential(proxyCred[0], proxyCredPassword);
+			}
+		}
+
 		request.Proxy = myproxy;
 		break;
 ```

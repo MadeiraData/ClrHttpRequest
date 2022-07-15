@@ -123,18 +123,40 @@ public partial class UserDefinedFunctions
                         request.Credentials = new NetworkCredential(netCredValues[0], netCredValues[1]);
                         break;
                     case "PROXY":
-                        var proxyValues = headerValue.Split(':');
+                        var proxyValues = headerValue.Split(',');
                         if (proxyValues.Length < 2)
                         {
-                            throw new FormatException("When specifying the PROXY header, please set the value in a format of URI:PORT");
+                            throw new FormatException("When specifying the PROXY header, please set the value in a format of URI,PORT (you can also specify credentials using the format URI,PORT,username:password)");
                         }
                         int proxyPort;
                         if (!int.TryParse(proxyValues[1], out proxyPort))
                         {
-                            throw new FormatException("When specifying the PROXY header in the format of URI:PORT, the PORT must be numeric");
+                            throw new FormatException("When specifying the PROXY header in the format of URI,PORT the PORT must be numeric");
                         }
                         WebProxy myproxy = new WebProxy(proxyValues[0], proxyPort);
                         myproxy.BypassProxyOnLocal = false;
+
+                        if (proxyValues.Length > 2)
+                        {
+                            var proxyCred = proxyValues[2].Split(':');
+                            if (proxyCred.Length < 2)
+                            {
+                                throw new FormatException("When specifying the PROXY header, please set the value in a format of URI,PORT (you can also specify credentials using the format URI,PORT,username:password)");
+                            }
+                            else
+                            {
+                                var proxyCredPassword = proxyCred[1];
+
+                                // if the password contains colon characters, re-stich them back into the password
+                                for (int i = 2; i < proxyCred.Length - 1; i++)
+                                {
+                                    proxyCredPassword += ":" + proxyCred[i];
+                                }
+
+                                myproxy.Credentials = new NetworkCredential(proxyCred[0], proxyCredPassword);
+                            }
+                        }
+
                         request.Proxy = myproxy;
                         break;
                     default: // other headers
