@@ -19,6 +19,7 @@ My version extends the project by adding the following:
 * Addition of a proper PreDeployment script which takes care of CLR assembly signing without requiring the TRUSTWORTHY database setting.
 * Added UTF8 encoding support instead of ASCII.
 * Added support for case-insensitive headers.
+* Added support for TrustServerCertificate header. For example: `<Header Name="TrustServerCertificate">True</Header>`
   
 The following code was added in clr_http_request.cs, line 19:
 ```cs
