@@ -159,6 +159,9 @@ public partial class UserDefinedFunctions
 
                         request.Proxy = myproxy;
                         break;
+                    case "TrustServerCertificate":
+                        ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
+                        break;
                     default: // other headers
                         request.Headers.Add(headerName, headerValue);
                         break;
