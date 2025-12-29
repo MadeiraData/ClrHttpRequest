@@ -41,6 +41,9 @@ public partial class UserDefinedFunctions
         if (convertResponseToBas64.IsNull)
             convertResponseToBas64 = false;
 
+        bool sendBodyAsBinary = false;
+        string bodyBinaryFormat = "BASE64"; // or "HEX"
+
         // If GET request, and there are parameters, build into url
         if (requestMethod.Value.ToUpper() == "GET" && !parameters.IsNull && !string.IsNullOrWhiteSpace(parameters.Value))
         {
@@ -159,9 +162,17 @@ public partial class UserDefinedFunctions
 
                         request.Proxy = myproxy;
                         break;
+
                     case "TrustServerCertificate":
                         ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
                         break;
+                    
+                    case "SEND_BODY_AS_BINARY":
+                        sendBodyAsBinary = true;
+                        if (!string.IsNullOrWhiteSpace(headerValue))
+                            bodyBinaryFormat = headerValue.Trim().ToUpper(); // e.g. BASE64 or HEX
+                        break;
+                    
                     default: // other headers
                         request.Headers.Add(headerName, headerValue);
                         break;
@@ -180,8 +191,27 @@ public partial class UserDefinedFunctions
         // Add in non-GET parameters provided
         if (requestMethod.Value.ToUpper() != "GET" && !parameters.IsNull && !string.IsNullOrWhiteSpace(parameters.Value))
         {
-            // Convert to byte array
-            var parameterData = Encoding.UTF8.GetBytes(parameters.Value);
+            // Convert body to byte array
+            byte[] parameterData;
+
+            if (sendBodyAsBinary)
+            {
+                if (bodyBinaryFormat == "HEX")
+                {
+                    parameterData = HexToBytes(parameters.Value);
+                }
+                else // default BASE64
+                {
+                    // tolerate whitespace/newlines in base64
+                    var b64 = parameters.Value.Trim();
+                    parameterData = Convert.FromBase64String(b64);
+                }
+            }
+            else
+            {
+                parameterData = Encoding.UTF8.GetBytes(parameters.Value);
+            }
+
 
             // Set content info
             if (!contentLengthSetFromHeaders)
@@ -282,4 +312,27 @@ public partial class UserDefinedFunctions
         // Return data
         return new SqlXml(returnXml.CreateReader());
     }
+
+    private static byte[] HexToBytes(string hex)
+    {
+        if (hex == null) return Array.Empty<byte>();
+    
+        hex = hex.Trim();
+        if (hex.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+            hex = hex.Substring(2);
+    
+        // Remove any separators if you want to be permissive:
+        hex = hex.Replace("-", "").Replace(" ", "");
+    
+        if (hex.Length % 2 != 0)
+            throw new FormatException("HEX body must have an even number of characters.");
+    
+        var bytes = new byte[hex.Length / 2];
+        for (int i = 0; i < bytes.Length; i++)
+            bytes[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
+    
+        return bytes;
+    }
+
 }
+
